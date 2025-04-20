@@ -34,20 +34,33 @@
 	-- send as HTML5
 	http.prepare_content("text/html")
 
+	math.randomseed(os.time())
+
 	-- Custom settings
 	local mode = 'normal'
+	local font_weight = '600'
 	local dark_css = fs.readfile('/www/luci-static/argon/css/dark.css')
 	local bar_color = '#5e72e4'
 	local primary, dark_primary, blur_radius, blur_radius_dark, blur_opacity
 	if fs.access('/etc/config/argon') then
 		primary = uci:get_first('argon', 'global', 'primary')
 		dark_primary = uci:get_first('argon', 'global', 'dark_primary')
+		font_weight = uci:get_first('argon', 'global', 'font_weight')
 		blur_radius = uci:get_first('argon', 'global', 'blur')
 		blur_radius_dark = uci:get_first('argon', 'global', 'blur_dark')
 		blur_opacity = uci:get_first('argon', 'global', 'transparency')
 		blur_opacity_dark = uci:get_first('argon', 'global', 'transparency_dark')
 		mode = uci:get_first('argon', 'global', 'mode')
+		progressbar_font = uci:get_first('argon', 'global', 'progressbar_font')
 		bar_color = mode == 'dark' and dark_primary or primary
+		if not progressbar_font then
+			progressbar_font = "#2e2b60"
+		end
+		if font_weight == "normal" then
+			main_left_font_color = "#5f6368"
+		else
+			main_left_font_color = "#69758c"
+		end
 	end
 
 	-- Brand name
@@ -57,33 +70,46 @@
 <html lang="<%=luci.i18n.context.lang%>">
 
 <head>
-    <meta charset="utf-8">
-    <title>
-        <%=striptags( (boardinfo.hostname or "?") .. ( (node and node.title) and ' - ' .. translate(node.title) or '')) %>
-        - LuCI</title>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
-    <meta name="format-detection" content="telephone=no, email=no" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="x5-fullscreen" content="true">
-    <meta name="full-screen" content="yes">
-    <meta name="x5-page-mode" content="app">
-    <meta name="browsermode" content="application">
-    <meta name="msapplication-tap-highlight" content="no">
-    <meta name="msapplication-TileColor" content="<%=bar_color%>">
-    <meta name="application-name" content="<%=striptags( (boardinfo.hostname or "?") ) %> - LuCI">
-    <meta name="apple-mobile-web-app-title" content="<%=striptags( (boardinfo.hostname or "?") ) %> - LuCI">
-    <link rel="apple-touch-icon" sizes="60x60" href="<%=media%>/icon/apple-icon-60x60.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="<%=media%>/icon/apple-icon-72x72.png">
-    <link rel="apple-touch-icon" sizes="144x144" href="<%=media%>/icon/apple-icon-144x144.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="<%=media%>/icon/android-icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="<%=media%>/icon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="<%=media%>/icon/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="<%=media%>/icon/favicon-16x16.png">
-    <link rel="manifest" href="<%=media%>/icon/manifest.json"  crossorigin="use-credentials">
-    <meta name="msapplication-TileColor" content="<%=bar_color%>">
-    <meta name="msapplication-TileImage" content="<%=media%>/icon/ms-icon-144x144.png">
+	<meta charset="utf-8">
+	<title>
+		<%=striptags( (boardinfo.hostname or "?") .. ( (node and node.title) and ' - ' .. translate(node.title) or '')) %>
+		- LuCI</title>
+	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+	<meta name="format-detection" content="telephone=no, email=no" />
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="x5-fullscreen" content="true">
+	<meta name="full-screen" content="yes">
+	<meta name="x5-page-mode" content="app">
+	<meta name="browsermode" content="application">
+	<meta name="msapplication-tap-highlight" content="no">
+	<meta name="msapplication-TileColor" content="<%=bar_color%>">
+	<meta name="application-name" content="<%=striptags( (boardinfo.hostname or "?") ) %> - LuCI">
+	<meta name="apple-mobile-web-app-title" content="<%=striptags( (boardinfo.hostname or "?") ) %> - LuCI">
+	<link rel="apple-touch-icon" sizes="60x60" href="<%=media%>/icon/apple-icon-60x60.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="<%=media%>/icon/apple-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="<%=media%>/icon/apple-icon-144x144.png">
+	<link rel="icon" type="image/png" sizes="192x192" href="<%=media%>/icon/android-icon-192x192.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="<%=media%>/icon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="96x96" href="<%=media%>/icon/favicon-96x96.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="<%=media%>/icon/favicon-16x16.png">
+	<link rel="manifest" href="<%=media%>/icon/manifest.json"  crossorigin="use-credentials">
+	<meta name="msapplication-TileColor" content="<%=bar_color%>">
+	<meta name="msapplication-TileImage" content="<%=media%>/icon/ms-icon-144x144.png">
+    <% if mode == 'normal' then %>
     <meta name="theme-color" content="<%=bar_color%>">
+    <script type="text/javascript">
+        let prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDarkMode) {
+            viewport = document.querySelector("meta[name=theme-color]");
+            viewport.setAttribute('content', '#444950');
+        }
+    </script>
+    <% elseif mode == 'dark' then %>
+    <meta name="theme-color" content="#444950">
+    <% elseif mode == 'light' then %>
+    <meta name="theme-color" content="<%=bar_color%>">
+    <% end -%>
     <link rel="stylesheet" href="<%=media%>/css/cascade.css<%# ?v=PKG_VERSION %>">
     <style title="text/css">
         <% if mode == 'normal' then %>
@@ -97,10 +123,13 @@
         :root {
             --primary: <%=primary%>;
             --dark-primary: <%=dark_primary%>;
+            --font-weight: <%=font_weight%>;
+            --progressbar-font-color: <%=progressbar_font%>;
             --blur-radius:<%=blur_radius%>px;
             --blur-opacity:<%=blur_opacity%>;
             --blur-radius-dark:<%=blur_radius_dark%>px;
             --blur-opacity-dark:<%=blur_opacity_dark%>;
+            --main-left-font-color:<%=main_left_font_color%>;
         }
         <% end -%>
     </style>
@@ -121,14 +150,13 @@
 </head>
 
 <body
-	theme="<%=mode%>"
 	class="lang_<%=luci.i18n.context.lang%> <% if node then %><%= striptags( node.title ) %><% end %> <% if luci.dispatcher.context.authsession then %>logged-in<% end %>"
-	data-page="<%= table.concat(disp.context.requestpath, "-") %>">
+	data-page="<%= pcdata(table.concat(disp.context.requestpath, "-")) %>">
 
 	<div class="main">
 		<div class="main-left" id="mainmenu" style="display:none">
 			<div class="sidenav-header d-flex align-items-center">
-				<a class="brand" href="#"><%=brand_name%></a>
+				<a class="brand" href="/"><%=brand_name%></a>
 				<div class="ml-auto">
 					<!-- Sidenav toggler -->
 					<div class="sidenav-toggler d-none d-xl-block active" data-action="sidenav-unpin"
@@ -141,12 +169,6 @@
 					</div>
 				</div>
 			</div>
-			<div style="display: flex; flex-direction: column;position: relative;align-items: center;">
-				<input id="menu_search" type="text" placeholder="<%:Search Menu%>">
-				<div id="search_result" style="display: none;">
-					<ul class="float-list" style="width: 90%;min-height: 10em;max-height: 20em;"></ul>
-				</div>
-			</div>
 		</div>
 		<div class="main-right">
 			<header class="bg-primary">
@@ -154,7 +176,7 @@
 					<div class="container">
 						<div class="flex1">
 							<a class="showSide"></a>
-							<a class="brand" href="#"><%=brand_name%></a>
+							<a class="brand" href="/"><%=brand_name%></a>
 						</div>
 						<div class="status" id="indicators"></div>
 					</div>
